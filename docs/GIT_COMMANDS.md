@@ -281,7 +281,7 @@ git subtree push --prefix dist origin gh-pages
 
 ```powershell
 # Universal "save and push" one-liner
-git add -A && git commit -m "update: your message here" && git push
+git add -A; git commit -m "update: your message here"; git push
 ```
 
 ---
@@ -329,15 +329,15 @@ git push -u origin main --force
 
 | What You Want | Command |
 |--------------|---------|
-| Save everything | `git add -A && git commit -m "msg" && git push` |
+| Save everything | `git add -A; git commit -m "msg"; git push` |
 | See what changed | `git status` |
 | See line changes | `git diff` |
 | Undo last commit (keep code) | `git reset --soft HEAD~1` |
 | New branch | `git checkout -b branch-name` |
 | Switch branch | `git checkout branch-name` |
-| Merge branch | `git checkout main && git merge branch-name` |
+| Merge branch | `git checkout main; git merge branch-name` |
 | Pull updates | `git pull` |
 | View history | `git log --oneline -10` |
 | Clone a repo | `git clone git@github.com:Shellshock9001/REPO.git` |
-| Tag a release | `git tag v1.0.0 && git push --tags` |
+| Tag a release | `git tag v1.0.0; git push --tags` |
 | Stash work | `git stash` / `git stash pop` |

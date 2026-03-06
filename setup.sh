@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-#  Donna FinTech — Automated Setup Script (Linux / macOS)
+#  DonnaAI FinTech — Automated Setup Script (Linux / macOS)
 # ============================================================
 set -euo pipefail
 
@@ -10,7 +10,7 @@ BOLD='\033[1m'
 banner() {
   echo ""
   echo -e "${CYAN}╔═══════════════════════════════════════════════╗${NC}"
-  echo -e "${CYAN}║${NC}  ${BOLD}Donna FinTech${NC} — Financial Intelligence Graph  ${CYAN}║${NC}"
+  echo -e "${CYAN}║${NC}  ${BOLD}DonnaAI FinTech${NC} — Financial Intelligence Graph ${CYAN}║${NC}"
   echo -e "${CYAN}║${NC}       Automated Setup for Linux / macOS        ${CYAN}║${NC}"
   echo -e "${CYAN}╚═══════════════════════════════════════════════╝${NC}"
   echo ""
@@ -121,7 +121,7 @@ print_summary() {
   if [ "$DOCKER_AVAILABLE" = true ]; then
     echo -e "  ${BOLD}Docker deployment (for sharing on LAN):${NC}"
     echo -e "    ${CYAN}docker compose up --build -d${NC}"
-    echo -e "    → App: ${GREEN}http://<YOUR_IP>:3001${NC}"
+    echo -e "    → App: ${GREEN}http://<YOUR_IP>:4001${NC}"
     echo ""
   fi
 
