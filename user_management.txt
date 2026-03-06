@@ -1,0 +1,121 @@
+Advanced User Management Upgrade
+Upgrade from basic auth to a full-featured, intelligent user management system with risk scoring, profile management, sessions, API keys, security policies, and Docker deployment.
+
+User Review Required
+IMPORTANT
+
+Shellshock sidebar button — currently only logs out. Will be upgraded to open a My Profile flyout panel with: password change (strength meter), active sessions viewer (per-session revoke), and account info.
+
+IMPORTANT
+
+Sign-up URL for friends — right now it's http://localhost:5173/ which only works on your machine. With Docker + --host, friends on the same network can access via http://<YOUR_IP>:3001/. For internet access, you'd need port forwarding or a cloud deploy. I'll set up Docker with host networking.
+
+WARNING
+
+The existing 
+data/donna.db
+ will be migrated with ALTER TABLE for new columns — Shellshock's account is preserved.
+
+Proposed Changes
+1. Database Schema Upgrade
+[MODIFY] 
+db.js
+Add columns to users table:
+
+department, title, reason_for_access, referral_code — registration context
+risk_score (0–100), risk_factors (JSON) — computed on registration
+password_changed_at, must_reset_password — password management
+denial_reason — why a pending user was denied
+New tables:
+
+api_keys — id, user_id, name, key_hash, key_prefix, scopes (JSON), expires_at, revoked, created_at
+security_policies — key-value store for editable policies (password length, lockout rules, session timeout, etc.)
+invitations — id, email, role, invited_by, token_hash, expires_at, used, created_at
+2. Risk Scoring Engine
+[NEW] 
+riskEngine.js
+Computes 0–100 risk score on registration based on:
+
+Signal	Points	Reason
+No referral code	+20	Unvetted signup
+Disposable email domain	+25	throwaway email (mailinator, guerrillamail, etc.)
+Generic email provider (gmail, outlook)	+10	Not an org email
+No department provided	+15	Missing context
+No title provided	+10	Missing context
+Vague reason (<10 chars)	+15	Low-effort request
+Reason contains suspicious keywords	+15	"test", "just looking", etc.
+Valid referral code	-20	Vetted by existing user
+Color coding: 0–30 🟢 Low, 31–60 🟡 Medium, 61–100 🔴 High
+
+3. Backend Route Upgrades
+[MODIFY] 
+authRoutes.js
+/register accepts new fields (department, title, reason, referral)
+Computes risk score on signup, stores it
+PUT /api/auth/password — change own password (validates old, enforces strength, history)
+[MODIFY] 
+userRoutes.js
+Deny endpoint requires reason field
+Force-reset password endpoint
+Search/filter query params (role, status, q)
+[NEW] 
+sessionRoutes.js
+GET /api/sessions — all active sessions (admin: all users, user: own)
+DELETE /api/sessions/:id — revoke specific session
+Flags external/unknown IPs
+[NEW] 
+apiKeyRoutes.js
+POST /api/keys — create scoped key (shown once)
+GET /api/keys — list own keys (prefix only)
+DELETE /api/keys/:id — revoke
+[NEW] 
+policyRoutes.js
+GET /api/policies — all security policies
+PATCH /api/policies — update (super_admin only)
+4. Frontend Upgrades
+[MODIFY] 
+App.jsx
+Shellshock sidebar user card → click opens My Profile panel (slide-out)
+Profile panel: password change, sessions, account info
+Remove "enterprise" wording throughout
+[MODIFY] 
+RegisterPage.jsx
+Add fields: Department, Title, Reason for Access, Referral Code (optional)
+Real-time password strength meter with complexity rules
+[MODIFY] 
+SettingsPage.jsx
+Upgraded tabs:
+
+Team — search bar, role/status filters, inline suspend/restore, force-reset, edit modal
+Approvals — risk score badges (🟢🟡🔴), admin notes, deny-with-reason modal
+Sessions — all active sessions across users, flag unknown IPs, revoke
+API Keys — create, copy-once, revoke, expiry display
+Security Policies — live-editable password rules, session limits, lockout configs
+[NEW] 
+ProfilePanel.jsx
+Slide-out panel from sidebar user card:
+
+Account info (name, email, role, member since, approved by)
+Password change (current + new + confirm, strength meter, policy note)
+Active sessions (table with device, IP, last active, revoke button)
+Sign out all sessions button
+5. Docker Deployment
+[MODIFY] 
+Dockerfile
+Build frontend, serve from Express in production
+Expose on 0.0.0.0:3001 (accessible from network)
+[MODIFY] 
+docker-compose.yml
+ports: "0.0.0.0:3001:3001" — accessible from any device on the network
+Persistent volume for donna.db
+Set CORS_ORIGIN=* for Docker mode (or configurable)
+Friends access: http://<YOUR_LOCAL_IP>:3001/ → shows login page → click "Sign Up"
+
+Verification Plan
+Browser Tests
+Open login → Sign Up → fill out enhanced registration → verify risk score in admin's approval queue
+As Shellshock: approve with role assignment, deny with reason
+Click Shellshock user card → verify Profile panel opens
+Change password in profile → verify strength meter works
+View active sessions → revoke a session
+Docker: docker compose up --build → access from another device on network
