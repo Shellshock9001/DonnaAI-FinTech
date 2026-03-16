@@ -16,4 +16,3 @@ ENV PORT=3001
 ENV CORS_ORIGIN=*
 EXPOSE 3001
 CMD ["node", "server/server.js"]
-;
