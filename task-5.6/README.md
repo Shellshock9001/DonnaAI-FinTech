@@ -20,7 +20,7 @@ This task covers the responsive design implementation and mobile testing for the
 
 ### Req 1 — Audit all pages at 375px, 768px, 1024px
 
-All pages were audited at three breakpoints using Chrome DevTools device toolbar. Layout breaks were identified and documented in the audit record comment block at the bottom of `Media Mobile.css`.
+All pages were audited at three breakpoints using Chrome DevTools device toolbar. Layout breaks were identified and documented in the audit record comment block at the bottom of `Updated index.css`.
 
 **Issues found and fixed:**
 
@@ -42,7 +42,7 @@ All pages were audited at three breakpoints using Chrome DevTools device toolbar
 
 ### Req 2 — Media queries for each breakpoint
 
-Four breakpoints are defined in `Media Mobile.css`:
+Four breakpoints are defined in `Updated index.css`:
 
 ```
 1024px — Small laptop
