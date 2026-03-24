@@ -10,6 +10,9 @@
 
 Every task follows the same submission process. No exceptions.
 
+> [!WARNING]
+> **DO NOT** create standalone prototype folders with fake HTML files (like a separate `test.html`). You **must** write your code directly into the actual live project files (like `src/App.jsx` and `src/index.css`), so that your work is actually integrated into the app.
+
 **Step 1: Create a branch**
 ```bash
 git checkout -b feat/TASK-ID-short-description
@@ -35,6 +38,22 @@ Then go to GitHub, open a Pull Request targeting `dev`, and fill in:
 **Step 4: Manager reviews.** He will either approve, request changes, or ask questions in PR comments. Fix anything requested and push again — the PR updates automatically.
 
 **Step 5: After approval,** Manager merges your PR. Do not merge your own PRs.
+
+---
+
+## Testing on Mobile Devices
+
+If your task involves frontend layout or mobile responsiveness, you must test it on an actual physical phone before submitting your PR.
+
+1. Open your terminal and run:
+   ```bash
+   npm run dev:host
+   ```
+2. Look at the output for `➜ Network: http://192.168.x.x:5173/`
+3. Connect your phone to the same Wi-Fi network.
+4. Open the Network link in your phone's browser.
+
+If you don't do this, you will miss touch targets and viewport zooming issues!
 
 ---
 

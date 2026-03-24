@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import Icon from './components/Icon';
 import ProfilePanel from './components/ProfilePanel';
@@ -19,6 +19,18 @@ export default function App() {
     const [activePage, setActivePage] = useState("dashboard");
     const [authMode, setAuthMode] = useState("login");
     const [profileOpen, setProfileOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // Close sidebar on Escape key press
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isMobileMenuOpen) {
+                setIsMobileMenuOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isMobileMenuOpen]);
 
     if (loading) {
         return (
@@ -71,7 +83,8 @@ export default function App() {
 
     return (
         <div className="liq-app">
-            <aside className="sidebar">
+            <div className={`sidebar-overlay ${isMobileMenuOpen ? 'open' : ''}`} onClick={() => setIsMobileMenuOpen(false)}></div>
+            <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
                 <div className="logo-area">
                     <div className="logo-wordmark">Liquidity.ai</div>
                     <div className="logo-sub">Financial Intelligence Graph</div>
@@ -81,7 +94,7 @@ export default function App() {
                 <nav className="nav-section">
                     {coreItems.length > 0 && <div className="nav-group-label">Core Platform</div>}
                     {coreItems.map(item => (
-                        <div key={item.id} className={`nav-item ${activePage === item.id ? "active" : ""}`} onClick={() => setActivePage(item.id)}>
+                        <div key={item.id} className={`nav-item ${activePage === item.id ? "active" : ""}`} onClick={() => { setActivePage(item.id); setIsMobileMenuOpen(false); }}>
                             <Icon name={item.icon} size={14} />{item.label}
                             {item.badge && <span className="nav-badge">{item.badge}</span>}
                         </div>
@@ -89,7 +102,7 @@ export default function App() {
 
                     {intelItems.length > 0 && <div className="nav-group-label">Intelligence</div>}
                     {intelItems.map(item => (
-                        <div key={item.id} className={`nav-item ${activePage === item.id ? "active" : ""}`} onClick={() => setActivePage(item.id)}>
+                        <div key={item.id} className={`nav-item ${activePage === item.id ? "active" : ""}`} onClick={() => { setActivePage(item.id); setIsMobileMenuOpen(false); }}>
                             <Icon name={item.icon} size={14} />{item.label}
                             {item.badge && <span className="nav-badge">{item.badge}</span>}
                         </div>
@@ -97,7 +110,7 @@ export default function App() {
 
                     {govItems.length > 0 && <div className="nav-group-label">Governance</div>}
                     {govItems.map(item => (
-                        <div key={item.id} className={`nav-item ${activePage === item.id ? "active" : ""}`} onClick={() => setActivePage(item.id)}>
+                        <div key={item.id} className={`nav-item ${activePage === item.id ? "active" : ""}`} onClick={() => { setActivePage(item.id); setIsMobileMenuOpen(false); }}>
                             <Icon name={item.icon} size={14} />{item.label}
                         </div>
                     ))}
@@ -119,6 +132,14 @@ export default function App() {
 
             <div className="main-content">
                 <header className="topbar">
+                    <button 
+                        className={`hamburger-btn ${isMobileMenuOpen ? 'open' : ''}`} 
+                        aria-label="Open navigation" 
+                        aria-expanded={isMobileMenuOpen}
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        <span></span><span></span><span></span>
+                    </button>
                     <div className="breadcrumb">
                         <span>Liquidity.ai</span>
                         <span className="breadcrumb-sep">/</span>
@@ -134,8 +155,8 @@ export default function App() {
                             <div className="notif-dot" style={{ position: "absolute", top: 6, right: 6, width: 6, height: 6 }} />
                         </div>
                         <div className="icon-btn"><Icon name="key" size={14} /></div>
-                        <div className="tag tag-green mono" style={{ fontSize: 9 }}>SOC2 ✓</div>
-                        <div style={{
+                        <div className="tag tag-green mono hidden-mobile" style={{ fontSize: 9 }}>SOC2 ✓</div>
+                        <div className="hidden-mobile" style={{
                             display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px',
                             background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.15)', borderRadius: 6,
                             fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#C9A84C', cursor: 'pointer',

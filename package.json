@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite\" \"node server/server.js\"",
+    "dev:host": "concurrently \"vite --host\" \"node server/server.js --host\"",
     "dev:frontend": "vite",
     "dev:backend": "node server/server.js",
     "build": "vite build",
