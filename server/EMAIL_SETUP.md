@@ -2,22 +2,22 @@
 
 ## Overview
 
-This project uses Nodemailer to send transactional emails triggered by user management actions in the dashboard. Emails are currently configured to use Mailtrap for testing. This document covers the current setup and how to add new email types.
+This project uses the Resend SDK to send transactional emails triggered by user management actions in the dashboard. This document covers the current setup and how to add new email types.
 
 ---
 
-## Current Setup (Mailtrap - Testing)
+## Current Setup (Resend)
 
-### What is Mailtrap?
+### What is Resend?
 
-Mailtrap is an email sandbox tool that catches all outgoing emails and displays them in a test inbox. No real emails are ever delivered to users. It is used during development and testing only.
+Resend is a developer-friendly email delivery platform. Unlike Mailtrap which only catches emails for testing, Resend delivers real emails to real inboxes. It is used for both testing and production.
 
 ### Files
 
     server/
     lib/
-        email.js - Nodemailer config and 4 send functions
-    templates/
+        email.js - Resend config and 4 send functions
+    emails/
         signup-approved.html
         signup-denied.html
         password-reset.html
@@ -27,25 +27,21 @@ Mailtrap is an email sandbox tool that catches all outgoing emails and displays 
 
 Add these to your .env file:
 
-    MAILTRAP_HOST=sandbox.smtp.mailtrap.io
-    MAILTRAP_PORT=2525
-    MAILTRAP_USER=your_mailtrap_username
-    MAILTRAP_PASS=your_mailtrap_password
-    MAIL_FROM=noreply@liquidity.ai
+    RESEND_API_KEY=your_resend_api_key_here
+    RESEND_FROM=onboarding@resend.dev
 
-### Getting Mailtrap Credentials
+### Getting Resend Credentials
 
-1. Go to mailtrap.io and create a free account
-2. Create a sandbox inbox e.g. liquidity-dev
-3. Click into the inbox and go to the Integration tab
-4. Select Nodemailer from the dropdown
-5. Copy the user and pass values into your .env file
+1. Go to resend.com and create a free account
+2. Go to API Keys in the left sidebar
+3. Click Create API Key and name it liquidity-ai
+4. Copy the key that starts with re_
+5. Add it to your .env file as RESEND_API_KEY
+6. Use onboarding@resend.dev as RESEND_FROM until domain is verified
 
 ---
 
 ## Email Triggers
-
-The following table shows what triggers each email:
 
 | User Action | Function Called | Template Used |
 |---|---|---|
@@ -56,7 +52,7 @@ The following table shows what triggers each email:
 
 ### Where they are wired in
 
-- server/routes/userRoutes.js - approve and deny routes
+- server/routes/userRoutes.js - approve, deny, and force-reset routes
 - server/routes/authRoutes.js - account lockout route
 
 ---
@@ -69,86 +65,46 @@ Templates use double curly brace placeholder syntax for dynamic values. Example:
 
 The fillTemplate() function in email.js loops through the variables object and replaces each placeholder with the real value before the email is sent.
 
-    function fillTemplate(html, variables) {
-      let result = html;
-      for (const [key, value] of Object.entries(variables)) {
-        result = result.replaceAll(String.fromCharCode(123,123) + key + String.fromCharCode(125,125), value);
-      }
-      return result;
-    }
-
 ---
 
 ## Testing Emails Individually
 
-Run these commands one at a time from the project root. Each sends one email to your Mailtrap inbox.
+Run these commands one at a time from the project root:
 
 Test signup approved:
 
-    node -e "import('./server/lib/email.js').then(m => m.sendSignupApproved('test@example.com', 'Test User').then(() => console.log('sent')).catch(console.error))"
+    node -e "import('./server/lib/email.js').then(m => m.sendSignupApproved('your@email.com', 'Test User').then(() => console.log('sent')).catch(console.error))"
 
 Test signup denied:
 
-    node -e "import('./server/lib/email.js').then(m => m.sendSignupDenied('test@example.com', 'Test User', 'Incomplete documentation').then(() => console.log('sent')).catch(console.error))"
+    node -e "import('./server/lib/email.js').then(m => m.sendSignupDenied('your@email.com', 'Test User', 'Incomplete documentation').then(() => console.log('sent')).catch(console.error))"
 
 Test password reset:
 
-    node -e "import('./server/lib/email.js').then(m => m.sendPasswordReset('test@example.com', 'Test User', 'http://localhost:5173/reset?token=abc123').then(() => console.log('sent')).catch(console.error))"
+    node -e "import('./server/lib/email.js').then(m => m.sendPasswordReset('your@email.com', 'Test User', 'http://localhost:5173/reset?token=abc123').then(() => console.log('sent')).catch(console.error))"
 
 Test security alert:
 
-    node -e "import('./server/lib/email.js').then(m => m.sendSecurityAlert('test@example.com', 'Test User', 'Login from unknown IP 192.168.1.1').then(() => console.log('sent')).catch(console.error))"
+    node -e "import('./server/lib/email.js').then(m => m.sendSecurityAlert('your@email.com', 'Test User', 'Login from unknown IP 192.168.1.1').then(() => console.log('sent')).catch(console.error))"
+
+Note: Replace your@email.com with your real email address. Resend will deliver to your actual inbox.
 
 ---
 
 ## Adding a New Email Type
 
-Follow these 4 steps to add a new email notification to the system.
+Step 1 - Create the HTML template in server/emails/ using double curly brace placeholders for dynamic values.
 
-Step 1 - Create the HTML template
+Step 2 - Add a send function in server/lib/email.js following this pattern:
 
-Add a new file in server/templates/ for example my-new-email.html
-Use double curly brace placeholders for any dynamic values like name or reason.
-
-Step 2 - Add a send function in server/lib/email.js
-
-Follow this pattern:
-
-    async function sendMyNewEmail(to, name) {
+    export async function sendMyNewEmail(to, name) {
       const html = fillTemplate(loadTemplate('my-new-email'), { name });
-      return sendEmail({ to, subject: 'Your subject here', html });
+      return sendEmail({ to, subject: 'Your subject here', html, template: 'my-new-email' });
     }
 
-Step 3 - Export the function
-
-Add it to the export block at the bottom of email.js:
-
-    export {
-      sendSignupApproved,
-      sendSignupDenied,
-      sendPasswordReset,
-      sendSecurityAlert,
-      sendMyNewEmail,
-    };
-
-Step 4 - Import and call it in the relevant route
-
-    import { sendMyNewEmail } from '../lib/email.js';
-
-    sendMyNewEmail(user.email, user.display_name)
-      .catch(err => console.error('Email failed:', err.message));
+Step 3 - Import and call it in the relevant route file using .catch() to avoid breaking the API response if email fails.
 
 ---
-
-## Important Notes for Developers
-
-### .env is gitignored
-
-The .env file is never committed to GitHub. Each developer needs their own .env file with their own Mailtrap credentials. See .env.example for the list of required variables.
-
-### Emails fail silently
-
-Email sending uses .catch() instead of await so a failed email never breaks the main API response. Errors are logged to the server console. In production consider connecting these errors to a logging service.
 
 ## Email Logging
 
@@ -168,3 +124,25 @@ To query the log directly:
 
     node -e "import('./server/db.js').then(m => { const logs = m.db.prepare('SELECT * FROM email_log ORDER BY sent_at DESC').all(); console.log(JSON.stringify(logs, null, 2)); })"
 
+---
+
+## Domain Verification (For Production)
+
+Currently using onboarding@resend.dev as the sending address which works for testing. To send from your own domain in production:
+
+1. Go to resend.com and click Domains in the sidebar
+2. Click Add Domain and enter your domain
+3. Add the DNS records Resend provides to your domain registrar
+4. Wait for verification then update RESEND_FROM in .env to noreilly@yourdomain.com
+
+---
+
+## Important Notes for Developers
+
+### .env is gitignored
+
+The .env file is never committed to GitHub. Each developer needs their own .env file with their own Resend API key. See .env.example for the required variables.
+
+### Emails fail silently
+
+Email sending uses .catch() instead of await so a failed email never breaks the main API response. Errors are logged to the server console and recorded in the email_log table.
