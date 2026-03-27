@@ -137,6 +137,15 @@ db.exec(`
     sent_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+   CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
   CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
   CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
@@ -324,6 +333,10 @@ export const queries = {
   updatePassword: db.prepare("UPDATE users SET password_hash = ?, password_changed_at = datetime('now'), must_reset_password = 0, updated_at = datetime('now') WHERE id = ?"),
   forceResetPassword: db.prepare("UPDATE users SET must_reset_password = 1, updated_at = datetime('now') WHERE id = ?"),
   updateUserDetails: db.prepare("UPDATE users SET display_name = ?, department = ?, title = ?, admin_notes = ?, updated_at = datetime('now') WHERE id = ?"),
+
+createResetToken: db.prepare(`INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+15 minutes'))`),
+getResetToken: db.prepare(`SELECT * FROM password_reset_tokens WHERE token_hash = ? AND used = 0 AND expires_at > datetime('now')`),
+markResetTokenUsed: db.prepare(`UPDATE password_reset_tokens SET used = 1 WHERE id = ?`),
 
   // Sessions
   createSession: db.prepare(`INSERT INTO sessions (id, user_id, token_hash, refresh_token_hash, ip_address, user_agent, device_label, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`),

@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { queries, ROLES, logAudit } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { requirePermission, ROLE_HIERARCHY } from '../middleware/rbac.js';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -230,6 +231,17 @@ router.patch('/:id/force-reset', authenticate, requirePermission('users.force_re
         const target = queries.getUserById.get(req.params.id);
         if (!target) return res.status(404).json({ error: 'User not found' });
 
+        // Generate real reset token
+        const token = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const resetId = uuidv4();
+
+        // Store token in database with 15 min expiry
+        queries.createResetToken.run(resetId, target.id, tokenHash);
+
+        // Build reset link with real token
+        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
+
         queries.forceResetPassword.run(req.params.id);
 
         logAudit({
@@ -238,17 +250,17 @@ router.patch('/:id/force-reset', authenticate, requirePermission('users.force_re
             ip: req.ip,
         });
 
-sendPasswordReset(
-  target.email,
-  target.display_name,
-  'http://localhost:5173'
-).catch(err => console.error('Email failed:', err.message));
+        sendPasswordReset(
+            target.email,
+            target.display_name,
+            resetLink
+        ).catch(err => console.error('Email failed:', err.message));
 
-        res.json({ message: 'Password reset flag set. User must change password on next login.' });
+        res.json({ message: 'Password reset email sent with secure link.' });
     } catch (err) {
         res.status(500).json({ error: 'Force reset failed' });
     }
-});
+});    
 
 // Update user details (admin edit)
 router.patch('/:id/details', authenticate, requirePermission('users.update'), (req, res) => {

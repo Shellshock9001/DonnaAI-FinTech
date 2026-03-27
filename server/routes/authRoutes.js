@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcryptjs from 'bcryptjs';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
-import { queries, logAudit } from '../db.js';
+import { queries, logAudit, db } from '../db.js';
 import { authenticate, generateTokens, hashToken } from '../middleware/auth.js';
 import { computeRiskScore } from '../riskEngine.js';
 import { sendSecurityAlert } from '../lib/email.js';
@@ -238,3 +238,45 @@ router.put('/password', authenticate, (req, res) => {
 });
 
 export default router;
+
+// ── PASSWORD RESET ──
+router.post('/reset-password', (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        if (!token || !newPassword) return res.status(400).json({ error: 'Token and new password are required' });
+
+        // Hash the token and look it up
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const resetToken = queries.getResetToken.get(tokenHash);
+        if (!resetToken) return res.status(400).json({ error: 'Invalid or expired reset token', code: 'INVALID_TOKEN' });
+
+        // Password complexity check
+        const pwErrors = [];
+        if (newPassword.length < 8) pwErrors.push('Minimum 8 characters');
+        if (!/[A-Z]/.test(newPassword)) pwErrors.push('Requires uppercase letter');
+        if (!/[a-z]/.test(newPassword)) pwErrors.push('Requires lowercase letter');
+        if (!/[0-9]/.test(newPassword)) pwErrors.push('Requires number');
+        if (!/[^A-Za-z0-9]/.test(newPassword)) pwErrors.push('Requires special character');
+        if (pwErrors.length > 0) return res.status(400).json({ error: 'Password does not meet requirements', details: pwErrors });
+
+        // Get the user
+        const user = queries.getUserById.get(resetToken.user_id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        // Update password and mark token as used
+        const hash = bcryptjs.hashSync(newPassword, 12);
+        queries.updatePassword.run(hash, user.id);
+        queries.markResetTokenUsed.run(resetToken.id);
+
+        logAudit({
+            actorId: user.id, actorEmail: user.email, actorRole: user.role,
+            action: 'PASSWORD_RESET', targetType: 'user', targetId: user.id, targetEmail: user.email,
+            ip: req.ip,
+        });
+
+        res.json({ message: 'Password reset successfully. You can now log in.' });
+    } catch (err) {
+        console.error('Reset password error:', err);
+        res.status(500).json({ error: 'Password reset failed' });
+    }
+});

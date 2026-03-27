@@ -158,3 +158,50 @@ All 4 templates tested and confirmed delivered to real Gmail inbox:
 - Domain verification via Resend for custom sending domain
 - Cross-client rendering tests in Outlook and Apple Mail
 - Real reset token generation for password reset link
+
+## Password Reset Token (Added)
+
+### server/db.js
+Added password_reset_tokens table:
+
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime(now))
+    );
+
+Added 3 new queries: createResetToken, getResetToken, markResetTokenUsed
+
+### server/routes/userRoutes.js
+Updated PATCH /:id/force-reset to:
+- Generate secure random token using crypto.randomBytes(32)
+- Hash token with SHA-256 before storing
+- Store token in password_reset_tokens table with 15 min expiry
+- Build reset link using FRONTEND_URL environment variable
+- Send real reset link in password reset email
+
+### server/routes/authRoutes.js
+Added POST /api/auth/reset-password route:
+- Accepts token and newPassword from request body
+- Hashes token and looks it up in database
+- Validates token is unused and not expired
+- Enforces password complexity rules
+- Updates user password and marks token as used
+- Logs audit event
+
+### src/pages/ResetPasswordPage.jsx (New File)
+New frontend page that:
+- Reads token from URL query parameter
+- Shows password and confirm password fields
+- Calls POST /api/auth/reset-password
+- Shows success message and redirects to login
+- Styled to match dashboard dark theme
+
+### src/App.jsx
+Added check for reset password route:
+- Detects token in URL query params
+- Renders ResetPasswordPage before auth check
+- Allows unauthenticated users to reset password

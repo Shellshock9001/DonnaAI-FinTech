@@ -146,3 +146,20 @@ The .env file is never committed to GitHub. Each developer needs their own .env 
 ### Emails fail silently
 
 Email sending uses .catch() instead of await so a failed email never breaks the main API response. Errors are logged to the server console and recorded in the email_log table.
+
+## Password Reset Token Flow
+
+When an admin force resets a user password the system now generates a real secure token instead of a placeholder link.
+
+How it works:
+
+1. Admin clicks Force Reset in Settings > Team
+2. A secure random token is generated using crypto.randomBytes(32)
+3. The token is hashed with SHA-256 and stored in the password_reset_tokens table with a 15 minute expiry
+4. A reset email is sent to the user with the real token link
+5. User clicks the link and lands on the ResetPasswordPage
+6. User enters a new password — complexity rules are enforced
+7. Token is verified against the database and marked as used
+8. Password is updated and user can log in
+
+Token expires after 15 minutes and can only be used once.
