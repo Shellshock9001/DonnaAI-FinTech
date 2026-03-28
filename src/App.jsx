@@ -13,6 +13,7 @@ import ViewsPage from './pages/ViewsPage';
 import ProvenancePage from './pages/ProvenancePage';
 import SecurityPage from './pages/SecurityPage';
 import SettingsPage from './pages/SettingsPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 export default function App() {
     const { user, isAuthenticated, loading, login, register, logout, error, setError, isAdmin, isSuperAdmin } = useAuth();
@@ -30,6 +31,12 @@ export default function App() {
             </div>
         );
     }
+
+// Check if user is on reset password page
+const urlParams = new URLSearchParams(window.location.search);
+if (window.location.pathname === '/reset-password' || urlParams.get('token')) {
+    return <ResetPasswordPage onSuccess={() => window.location.href = '/'} />;
+}
 
     if (!isAuthenticated) {
         if (authMode === 'register') {
